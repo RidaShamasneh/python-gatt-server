@@ -474,25 +474,32 @@ class QpssTxCharacteristic(Characteristic):
         self.rpy_packet_4_dbus = [dbus.Byte(x) for x in self.rpy_packet_4]
 
         self.packet_index = 0 
-
+	
+	self.all_packets_hex = [self.rpy_packet_1, self.rpy_packet_2, self.rpy_packet_3, self.rpy_packet_4]
         self.all_packets = [self.rpy_packet_1_dbus, self.rpy_packet_2_dbus, self.rpy_packet_3_dbus, self.rpy_packet_4_dbus]
         
-        GObject.timeout_add(3000, self.modify_rpy)    	
+        # Settiing notifcation frequency to 1Hz
+        GObject.timeout_add(1000, self.modify_rpy)    	
     
     def notify_rpy_packet(self):
         if not self.notifying:
             return
         self.PropertiesChanged(
                 GATT_CHRC_IFACE,
-                {'Value': self.get_current_packet()}, [])
+                {'Value': self.current_packet_in_dbus}, [])
     
-    def get_current_packet(self):
+    @property
+    def current_packet_in_dbus(self):
     	return self.all_packets[self.packet_index]
-
+   
+    @property
+    def current_packet_in_hex(self):
+    	return self.all_packets_hex[self.packet_index]
+    
     def modify_rpy(self):  
-        print('RPY: ' + repr(self.get_current_packet()))
+        print('RPY: ' + repr(self.current_packet_in_hex))
         self.notify_rpy_packet()
-        
+      
         self.packet_index += 1
     	if self.packet_index == 4:
             self.packet_index = 0
@@ -500,8 +507,8 @@ class QpssTxCharacteristic(Characteristic):
         return True
 
     def ReadValue(self, options):
-        print('RPY packet read: ' + repr(self.get_current_packet()))
-        return [dbus.Byte(self.get_current_packet())]
+        print('RPY packet read: ' + repr(self.current_packet_in_hex))
+        return [self.current_packet_in_dbus]
 
     def StartNotify(self):
         if self.notifying:
